@@ -3,17 +3,23 @@ package cucumber.eclipse.steps.jdt;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IProject;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.SubMonitor;
 import org.eclipse.jdt.core.IAnnotation;
 import org.eclipse.jdt.core.IClassFile;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -42,6 +48,10 @@ import org.eclipse.jface.text.Document;
 import cucumber.eclipse.steps.integration.IStepListener;
 import cucumber.eclipse.steps.integration.Step;
 import cucumber.eclipse.steps.integration.StepsChangedEvent;
+import io.cucumber.cucumberexpressions.Expression;
+import io.cucumber.cucumberexpressions.ExpressionFactory;
+import io.cucumber.cucumberexpressions.ParameterTypeRegistry;
+import io.cucumber.cucumberexpressions.UndefinedParameterTypeException;
 
 /*
  * Modified for Issue #211 : Duplicate Step definitions
@@ -53,6 +63,8 @@ import cucumber.eclipse.steps.integration.StepsChangedEvent;
 //public class StepDefinitions implements IStepDefinitions {
 
 public class StepDefinitions extends MethodDefinition {
+
+	private static final String MARKER_STEPPARSERPROBLEM = "cucumber.eclipse.steps.jdt.stepparserproblem";
 
 	public static volatile StepDefinitions INSTANCE;
 
@@ -147,10 +159,15 @@ public class StepDefinitions extends MethodDefinition {
 				setJava8CukeLang(importDeclaration);
 			}
 		}
+		Map<String, Locale> localeCache = new HashMap<String, Locale>();
+		Map<Locale, ExpressionFactory> expressionFactoryCache = new HashMap<Locale, ExpressionFactory>();
+		
 
 		List<MethodDeclaration> methodDeclList = null;
 		JavaParser javaParser = null;
 		for (IType t : iCompUnit.getTypes()) {
+			IResource resource = iCompUnit.getResource();
+			resource.deleteMarkers(MARKER_STEPPARSERPROBLEM, false, 1);
 			//collect all steps from java8 lamdas
 			for (IType ifType : t.newTypeHierarchy(progressMonitor).getAllInterfaces()) {
 				
@@ -190,24 +207,23 @@ public class StepDefinitions extends MethodDefinition {
 							//Iterate MethodDefinition
 							for (MethodDefinition method : methodDefList) {
 								//Iterate Method-Statements
-								for (Statement statement : method.getMethodBodyList()) {					
-									// Add all lambda-steps to Step
-									Step step = new Step();
-									step.setSource(iCompUnit.getResource());	//source
+								for (Statement statement : method.getMethodBodyList()) {
+									int line = -1;
 									try {
+										line = javaParser.getLineNumber(statement);
 										String lambdaStep = method.getLambdaStep(statement, keyWords);
 										if (lambdaStep == null) {
 											continue;
 										}
-										step.setText(lambdaStep);	//step
-										step.setLineNumber(javaParser.getLineNumber(statement));	//line-number
-										step.setLang(method.getCukeLang());	//Language
-										steps.add(step);
+										Locale locale = getOrCreateLocale(localeCache, method.getCukeLang());
+										ExpressionFactory expressionFactory = getOrCreateExpressionFactory(expressionFactoryCache, locale);
+										Expression expression = expressionFactory.createExpression(lambdaStep);
+										steps.add(new Step(expression, line, resource));
 									} catch(PatternSyntaxException e) {
-										//we can't parse the pattern so we can't use the step!
-										System.out.println(e);
+										reportError(resource, line, "Can't parse pattern "+e.getPattern()+", problem: "+e.getDescription());
+									} catch(UndefinedParameterTypeException e) {
+										reportError(resource, line, "Undefined parameter type "+e.getMessage());
 									}
-									
 									
 								}
 							}
@@ -220,18 +236,73 @@ public class StepDefinitions extends MethodDefinition {
 				for (IAnnotation annotation : method.getAnnotations()) {
 					CucumberAnnotation cukeAnnotation = getCukeAnnotation(importedAnnotations, annotation);
 					if (cukeAnnotation != null) {
-						Step step = new Step();
-						step.setSource(method.getResource());
-						step.setText(getAnnotationText(annotation));
-						step.setLineNumber(getLineNumber(iCompUnit, annotation));
-						step.setLang(cukeAnnotation.getLang());
-						steps.add(step);
+						int line = -1;
+						try {
+							line = getLineNumber(iCompUnit, annotation);
+							Locale locale = getOrCreateLocale(localeCache, cukeAnnotation.getLang());
+							ExpressionFactory expressionFactory = getOrCreateExpressionFactory(expressionFactoryCache, locale);
+							Expression expression = expressionFactory.createExpression(getAnnotationText(annotation));
+							steps.add(new Step(expression, line, method.getResource()));
+						} catch(PatternSyntaxException e) {
+							reportError(resource, line, "Can't parse pattern "+e.getPattern()+", problem: "+e.getDescription());
+						} catch(UndefinedParameterTypeException e) {
+							reportError(resource, line, "Undefined parameter type "+e.getMessage());
+						}
 					}
 				}
 
 			}
 		}
 		return steps;
+	}
+	
+	void reportError(IResource resource, int line, String msg) {
+		if (resource == null) {
+			System.err.println("Can't report error, resource is null! ("+msg+", line "+line+")");
+		}
+		try {
+		   IMarker m = resource.createMarker(MARKER_STEPPARSERPROBLEM);
+		   m.setAttribute(IMarker.LINE_NUMBER, line);
+		   m.setAttribute(IMarker.MESSAGE, msg);
+		   m.setAttribute(IMarker.PRIORITY, IMarker.PRIORITY_NORMAL);
+		   m.setAttribute(IMarker.SEVERITY, IMarker.SEVERITY_ERROR);
+		} catch(CoreException e) {
+			System.err.println("Can't report error, create marker failed! ("+msg+", line "+line+")");
+			e.printStackTrace();
+		}
+		}
+
+	public static ExpressionFactory getOrCreateExpressionFactory(Map<Locale, ExpressionFactory> expressionFactoryCache, Locale locale) {
+		if (expressionFactoryCache != null) {
+			ExpressionFactory expressionFactory = expressionFactoryCache.get(locale);
+			if (expressionFactory != null) {
+				return expressionFactory;
+			}
+		}
+		//FIXME add custom types!
+		ExpressionFactory factory = new ExpressionFactory(new ParameterTypeRegistry(locale));
+		if (expressionFactoryCache != null) {
+			expressionFactoryCache.put(locale, factory);
+		}
+		return factory;
+		
+	}
+
+	public static Locale getOrCreateLocale(Map<String, Locale> localeCache, String cukeLang) {
+		if (cukeLang == null) {
+			return Locale.getDefault(); 
+		}
+		if (localeCache != null) {
+			Locale locale = localeCache.get(cukeLang);
+			if (locale != null) {
+				return locale;
+			}
+		}
+		Locale newLocale = new Locale(cukeLang);
+		if (localeCache != null) {
+			localeCache.put(cukeLang, newLocale);
+		}
+		return newLocale;
 	}
 
 	/**
@@ -240,11 +311,13 @@ public class StepDefinitions extends MethodDefinition {
 	 * 
 	 * @param javaPackage
 	 * @param classFile
+	 * @param localeCache 
+	 * @param expressionFactoryCache 
 	 * @return List<Step>
 	 * @throws JavaModelException
 	 * @throws CoreException
 	 */
-	public List<Step> getCukeSteps(IPackageFragment javaPackage, IClassFile classFile)
+	public List<Step> getCukeSteps(IPackageFragment javaPackage, IClassFile classFile, Map<String, Locale> localeCache, Map<Locale, ExpressionFactory> expressionFactoryCache)
 			throws JavaModelException, CoreException {
 
 		List<Step> steps = new ArrayList<Step>();
@@ -252,7 +325,7 @@ public class StepDefinitions extends MethodDefinition {
 
 		// Get content as children
 		for (IJavaElement javaElement : classFile.getChildren()) {
-
+			IResource resource = javaElement.getResource();
 			if (javaElement instanceof IType) {
 
 				// System.out.println("--------IType "
@@ -280,13 +353,16 @@ public class StepDefinitions extends MethodDefinition {
 					for (IAnnotation annotation : method.getAnnotations()) {
 						CucumberAnnotation cukeAnnotation = getCukeAnnotation(importedAnnotations, annotation);
 						if (cukeAnnotation != null) {
-							Step step = new Step();
-							step.setText(getAnnotationText(annotation));
-							step.setSourceName(classFile.getElementName());
-							step.setPackageName(javaPackage.getElementName());
-							// step.setLineNumber(getLineNumber(compUnit,annotation));
-							step.setLang(cukeAnnotation.getLang());
-							steps.add(step);
+							try {
+								Locale locale = getOrCreateLocale(localeCache, cukeAnnotation.getLang());
+								ExpressionFactory expressionFactory = getOrCreateExpressionFactory(expressionFactoryCache, locale);
+								Expression expression = expressionFactory.createExpression(getAnnotationText(annotation));
+								steps.add(new Step(expression, classFile.getElementName(), javaPackage.getElementName()));
+							} catch(PatternSyntaxException e) {
+								reportError(resource, -1, "Can't parse pattern "+e.getPattern()+", problem: "+e.getDescription());
+							} catch(UndefinedParameterTypeException e) {
+								reportError(resource, -1, "Undefined parameter type "+e.getMessage());
+							}
 						}
 					}
 				}
@@ -331,7 +407,6 @@ public class StepDefinitions extends MethodDefinition {
 		final List<CucumberAnnotation> annotations = new ArrayList<CucumberAnnotation>();
 
 		SearchRequestor requestor = new SearchRequestor() {
-			@SuppressWarnings("deprecation")
 			public void acceptSearchMatch(SearchMatch match) {
 				try {
 					if (match.getAccuracy() == SearchMatch.A_ACCURATE) {
@@ -420,15 +495,17 @@ public class StepDefinitions extends MethodDefinition {
 	 */
 	public void scanJavaProjectForStepDefinitions(IJavaProject projectToScan, Collection<Step> collectedSteps, IProgressMonitor progressMonitor)
 			throws JavaModelException, CoreException {
-
 		IPackageFragment[] packages = projectToScan.getPackageFragments();
+		SubMonitor subMonitor = SubMonitor.convert(progressMonitor, packages.length);
 
 		for (IPackageFragment javaPackage : packages) {
 
 			if (javaPackage.getKind() == IPackageFragmentRoot.K_SOURCE) {
-
-				for (ICompilationUnit compUnit : javaPackage.getCompilationUnits()) {
-					collectedSteps.addAll(getCukeSteps(projectToScan, compUnit, progressMonitor));
+				SubMonitor child = subMonitor.newChild(1);
+				ICompilationUnit[] compilationUnits = javaPackage.getCompilationUnits();
+				child.setWorkRemaining(compilationUnits.length);
+				for (ICompilationUnit compUnit : compilationUnits) {
+					collectedSteps.addAll(getCukeSteps(projectToScan, compUnit, child.newChild(1)));
 				}
 			}
 		}

@@ -1,7 +1,10 @@
 package cucumber.eclipse.editor.steps.jdt;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import org.eclipse.core.resources.IFile;
@@ -22,6 +25,7 @@ import cucumber.eclipse.steps.integration.IStepListener;
 import cucumber.eclipse.steps.integration.Step;
 import cucumber.eclipse.steps.integration.StepsChangedEvent;
 import cucumber.eclipse.steps.jdt.StepDefinitions;
+import io.cucumber.cucumberexpressions.ExpressionFactory;
 
 /**
  * @author girija.panda@nokia.com
@@ -157,12 +161,13 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 	public void collectCukeStepsFromJar(IPackageFragment javaPackage, Set<Step> steps)
 			throws JavaModelException, CoreException {
 
-		@SuppressWarnings("deprecation")
 		IClassFile[] classFiles = javaPackage.getClassFiles();
+		Map<String, Locale> localeCache = new HashMap<String, Locale>();
+		Map<Locale, ExpressionFactory> expressionCache = new HashMap<Locale, ExpressionFactory>();
 		for (IClassFile classFile : classFiles) {
 			// System.out.println("----classFile: "
 			// +classFile.getElementName());
-			steps.addAll(getCukeSteps(javaPackage, classFile));
+			steps.addAll(getCukeSteps(javaPackage, classFile, localeCache, expressionCache));
 		}
 	}
 

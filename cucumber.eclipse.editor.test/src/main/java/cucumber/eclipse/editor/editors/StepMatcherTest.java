@@ -15,6 +15,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import cucumber.eclipse.steps.integration.Step;
+import cucumber.eclipse.steps.jdt.StepDefinitions;
+import io.cucumber.cucumberexpressions.ExpressionFactory;
 
 public class StepMatcherTest {
 
@@ -177,9 +179,8 @@ public class StepMatcherTest {
 	
 	private Step createStep(String text) {
 
-		Step s = new Step();
-		s.setText(text);
-		return s;
+		ExpressionFactory factory = StepDefinitions.getOrCreateExpressionFactory(null, StepDefinitions.getOrCreateLocale(null, null));
+		return new Step(factory.createExpression(text), "test", "me");
 	}
 
 	@Test

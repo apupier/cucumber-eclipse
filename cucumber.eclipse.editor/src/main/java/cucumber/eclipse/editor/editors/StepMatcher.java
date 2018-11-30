@@ -68,11 +68,11 @@ class StepMatcher {
 				// System.out.println("StepMatcher matchSteps() FOR START
 				// ###########################################################");
 
-				Matcher groupNonParameterMatcher = groupPatternNonParameterMatch.matcher(step.getText());
+				String stepTextPattern = step.getExpression().getRegexp().pattern();
+				Matcher groupNonParameterMatcher = groupPatternNonParameterMatch.matcher(stepTextPattern);
 				while (groupNonParameterMatcher.find()) {
-					step.setText(step.getText().replace(groupNonParameterMatcher.group(0),
-							"(" + groupNonParameterMatcher.group(0).substring(3)));
-
+					stepTextPattern = stepTextPattern.replace(groupNonParameterMatcher.group(0),
+							"(" + groupNonParameterMatcher.group(0).substring(3));
 					// System.out.println("WHILE-1 : StepMatcher matchSteps()
 					// System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 				}
@@ -80,7 +80,7 @@ class StepMatcher {
 				// for each group match, want to insert <p> as an option
 				// e.g. (\\d+) becomes (<p>|\\d+)
 				// e.g. (two|ten) becomes (<p>|two|ten)
-				Matcher groupMatcher = groupPattern.matcher(step.getText());
+				Matcher groupMatcher = groupPattern.matcher(stepTextPattern);
 				// System.out.println("GET-TEXT ="+step.getText());
 
 				while (groupMatcher.find()) {
@@ -104,8 +104,8 @@ class StepMatcher {
 						// System.out.println("WHILE-2 : StepMatcher
 						// matchSteps() groupMatcher.group(0) DOESNOT startsWith
 						// <p>");
-						step.setText(step.getText().replace(groupMatcher.group(0),
-								"(<p>|" + groupMatcher.group(0).substring(1)));
+						stepTextPattern = stepTextPattern.replace(groupMatcher.group(0),
+								"(<p>|" + groupMatcher.group(0).substring(1));
 
 						// System.out.println("WHILE-2 : StepMatcher
 						// matchSteps() step-2 = " +step.getText());
@@ -113,8 +113,7 @@ class StepMatcher {
 					} else
 						break;
 				}
-
-				if (step.matches(cukeStep)) {
+				if (Pattern.compile(stepTextPattern).matcher(cukeStep).matches()) {
 					return step;
 				}
 
