@@ -155,6 +155,7 @@ public class StepMatcherTest {
 	}
 	
 	@Test
+	@Ignore("this is no longer true, we create an error marker instead!")
 	public void customCucumberExpressionStepMatchesButDoesNotThrowException() {
 
 		Step s = createStep("I have a {color} ball");
@@ -167,6 +168,7 @@ public class StepMatcherTest {
 	}
 
 	@Test
+	@Ignore("this is no longer true, we create an error marker instead!")
 	public void shouldNotThrowExceptionWhenPatternIsMalformed() {
 		try {
 		Step s = createStep("^(<p>|?>region|regions) of type (.*) (?>are|is) covering all references$");

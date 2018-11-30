@@ -1,6 +1,5 @@
 package cucumber.eclipse.steps.jdt;
 
-import gherkin.formatter.model.Step;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -18,52 +17,58 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.text.edits.TextEdit;
 
+import cucumber.api.java.ObjectFactory;
 import cucumber.eclipse.steps.integration.IStepGenerator;
+import cucumber.eclipse.steps.integration.Step;
 import cucumber.runtime.Backend;
 import cucumber.runtime.ClassFinder;
 import cucumber.runtime.java.JavaBackend;
-import cucumber.runtime.java.ObjectFactory;
 import cucumber.runtime.snippets.CamelCaseConcatenator;
 import cucumber.runtime.snippets.FunctionNameGenerator;
+import io.cucumber.stepexpression.TypeRegistry;
 
 public class StepGenerator implements IStepGenerator {
-
+	
 	@Override
 	public boolean supports(IFile file) {
 		return file.getName().endsWith(".java");
 	}
 
 	@Override
-	public TextEdit createStepSnippet(Step step, IDocument targetDocument) throws IOException, CoreException {
-		Backend backend = new JavaBackend(new EmptyObjectFactory(), new EmptyClassFinder());
-		
-		String snippetText = backend.getSnippet(step, new FunctionNameGenerator(new CamelCaseConcatenator()));
-
-		ASTParser parser = ASTParser.newParser(AST.JLS3);
-		parser.setSource(targetDocument.get().toCharArray());
-		
-		CompilationUnit target = (CompilationUnit) parser.createAST(null);
-		target.recordModifications();
-		
-		TypeDeclaration targetType = (TypeDeclaration) target.types().get(0);
-		
-		parser.setKind(ASTParser.K_CLASS_BODY_DECLARATIONS);
-		parser.setSource(snippetText.toCharArray());
-		TypeDeclaration fragmentContainer = (TypeDeclaration) parser.createAST(null);
-		
-		for (Object fragmentObject : fragmentContainer.bodyDeclarations()) {
-			BodyDeclaration fragmentNode = (BodyDeclaration) fragmentObject;
-		
-			// clone into target AST
-			fragmentNode = (BodyDeclaration) ASTNode.copySubtree(target.getAST(), fragmentNode);
-		
-			@SuppressWarnings("unchecked")
-			List<BodyDeclaration> bodyDeclarations = targetType.bodyDeclarations();
+	public TextEdit createStepSnippet(gherkin.formatter.model.Step step, IDocument targetDocument)
+			throws IOException, CoreException {
+		TypeRegistry typeRegistry = null;
+		Backend backend = new JavaBackend(new EmptyObjectFactory(), new EmptyClassFinder(), typeRegistry);
+		//FIXME we must upgrade jerkins parser!
+		List<String> snippetTexts = backend.getSnippet(null, step.getKeyword(), new FunctionNameGenerator(new CamelCaseConcatenator()));
+		for (String snippetText : snippetTexts) {
+			ASTParser parser = ASTParser.newParser(AST.JLS3);
+			parser.setSource(targetDocument.get().toCharArray());
 			
-			bodyDeclarations.add(getInsertionPoint(targetType, fragmentNode), fragmentNode);
+			CompilationUnit target = (CompilationUnit) parser.createAST(null);
+			target.recordModifications();
+			
+			TypeDeclaration targetType = (TypeDeclaration) target.types().get(0);
+			
+			parser.setKind(ASTParser.K_CLASS_BODY_DECLARATIONS);
+			parser.setSource(snippetText.toCharArray());
+			TypeDeclaration fragmentContainer = (TypeDeclaration) parser.createAST(null);
+			
+			for (Object fragmentObject : fragmentContainer.bodyDeclarations()) {
+				BodyDeclaration fragmentNode = (BodyDeclaration) fragmentObject;
+			
+				// clone into target AST
+				fragmentNode = (BodyDeclaration) ASTNode.copySubtree(target.getAST(), fragmentNode);
+			
+				@SuppressWarnings("unchecked")
+				List<BodyDeclaration> bodyDeclarations = targetType.bodyDeclarations();
+				
+				bodyDeclarations.add(getInsertionPoint(targetType, fragmentNode), fragmentNode);
+			}
+			
+			return target.rewrite(targetDocument, null);
 		}
-		
-		return target.rewrite(targetDocument, null);
+		return null;
 	}
 	
 	private static int getInsertionPoint(TypeDeclaration source, BodyDeclaration fragment) {
@@ -114,8 +119,9 @@ public class StepGenerator implements IStepGenerator {
 		}
 	
 		@Override
-		public void addClass(Class<?> glueClass) {
+		public boolean addClass(Class<?> glueClass) {
 			// no action
+			return true;
 		}
 	
 		@Override
@@ -135,5 +141,7 @@ public class StepGenerator implements IStepGenerator {
 			// TODO Auto-generated method stub
 			return null;
 		}
-	}	
+	}
+
+
 }

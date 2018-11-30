@@ -134,6 +134,50 @@ public class StepDefinitions extends MethodDefinition {
 	// Cucumber-Annotations
 	public List<Step> getCukeSteps(IJavaProject javaProject, ICompilationUnit iCompUnit, IProgressMonitor progressMonitor)
 			throws JavaModelException, CoreException {
+		
+		
+		// FIXME progresmonitor handling!!!
+//				IType type = javaProject.findType(TypeRegistryConfigurer.class.getName(), progressMonitor);
+//				if (type != null) {
+//					System.out.println(type);
+//					ITypeHierarchy hierarchy = type.newTypeHierarchy(progressMonitor);
+//					IType[] types = hierarchy.getImplementingClasses(type);
+//					String[] classPath = JavaRuntime.computeDefaultRuntimeClassPath(javaProject);
+//					List<URL> urlList = new ArrayList<URL>();
+//					for (String entry : classPath) {
+//						IPath path = new Path(entry);
+//						try {
+//							URL url = path.toFile().toURI().toURL();
+//							urlList.add(url);
+//						} catch (MalformedURLException e) {
+//							// TODO Auto-generated catch block
+//							e.printStackTrace();
+//						}
+//					}
+//					URL[] urls = (URL[]) urlList.toArray(new URL[urlList.size()]);
+//					URLClassLoader classLoader = new URLClassLoader(urls, StepDefinitions2.class.getClassLoader());
+//					for (IType iType : types) {
+//						System.out.println(iType);
+//						String qualifiedName = iType.getFullyQualifiedName();
+//						if ("cucumber.runtime.DefaultTypeRegistryConfiguration".equals(qualifiedName)) {
+//							continue;
+//						}
+//						try {
+//							Class<?> loadClass = classLoader.loadClass(qualifiedName);
+//							TypeRegistryConfigurer newInstance = (TypeRegistryConfigurer) loadClass.newInstance();
+//							System.out.println(newInstance);
+//						} catch (Exception e) {
+//							e.printStackTrace();
+//						}
+//					}
+//					try {
+//						classLoader.close();
+//					} catch (IOException e) {
+//						// TODO Auto-generated catch block
+//						e.printStackTrace();
+//					}
+//					System.out.println();
+//				}
 
 		List<Step> steps = new ArrayList<Step>();
 		List<CucumberAnnotation> importedAnnotations = new ArrayList<CucumberAnnotation>();
