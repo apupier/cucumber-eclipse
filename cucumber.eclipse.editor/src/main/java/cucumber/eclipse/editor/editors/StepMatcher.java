@@ -14,6 +14,7 @@ class StepMatcher {
 	private Pattern groupPattern = Pattern.compile("(\\(.+?\\))");
 
 	
+	@SuppressWarnings("deprecation")
 	public Step matchSteps(String languageCode, Set<Step> steps, String currentLine) {
 
 		//System.out.println("StepMatcher matchSteps() steps = " + steps);
@@ -26,18 +27,21 @@ class StepMatcher {
 
 		if (matcher.matches()) {
 
-			String cukeStep = matcher.group(1);
+			String originalCukeStep = matcher.group(1);
 			//System.out.println("StepMatcher matchSteps() cukeStep1 = " + cukeStep);
 			// FIXME: Replace variables with (MPL - <p>) for now to allow them
 			// to match steps
 			// Should really read the whole scenario outline and sub in the
 			// first scenario
-			Matcher variableMatcher = variablePattern.matcher(cukeStep);
-			cukeStep = variableMatcher.replaceAll("<p>");
+			Matcher variableMatcher = variablePattern.matcher(originalCukeStep);
+			String cukeStep = variableMatcher.replaceAll("<p>");
 
 			//System.out.println("StepMatcher matchSteps() cukeStep2 = " + cukeStep);
 
 			for (Step step : steps) {
+				if (step.matches(originalCukeStep)) {
+					return step;
+				}
 
 				// firstly, have to replace all non-parameter matching group
 				// expressions to conform to normal regexp
@@ -90,8 +94,12 @@ class StepMatcher {
 					} else
 						break;
 				}
+				try {
 				if (Pattern.compile(stepTextPattern).matcher(cukeStep).matches()) {
 					return step;
+				}
+				} catch(PatternSyntaxException e) {
+					//can't match it then..
 				}
 
 				// System.out.println("FOR : StepMatcher matchSteps() step-3 = "
