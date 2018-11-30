@@ -63,5 +63,16 @@
          id="cucumber.eclipse.steps.jdt.projectNatureImage"
          natureId="cucumber.eclipse.steps.jdt.stepsNature">
    </image>
+</extension>
+<extension
+      id="stepparserproblem"
+      name="Step Parser Problem"
+      point="org.eclipse.core.resources.markers">
+   <persistent
+         value="false">
+   </persistent>
+   <super
+         type="org.eclipse.core.resources.problemmarker">
+   </super>
 </extension> 
 </plugin>
