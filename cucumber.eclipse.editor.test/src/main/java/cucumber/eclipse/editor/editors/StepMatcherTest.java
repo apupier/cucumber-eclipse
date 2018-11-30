@@ -181,7 +181,7 @@ public class StepMatcherTest {
 	
 	private Step createStep(String text) {
 
-		ExpressionFactory factory = StepDefinitions.getOrCreateExpressionFactory(null, StepDefinitions.getOrCreateLocale(null, null));
+		ExpressionFactory factory = StepDefinitions.getOrCreateExpressionFactory(null, StepDefinitions.getOrCreateLocale(null, null), null);
 		return new Step(factory.createExpression(text), "test", "me");
 	}
 

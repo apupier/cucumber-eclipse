@@ -1,6 +1,7 @@
 package cucumber.eclipse.editor.steps.jdt;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Locale;
@@ -19,6 +20,7 @@ import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 
+import cucumber.api.TypeRegistryConfigurer;
 import cucumber.eclipse.editor.preferences.CucumberUserSettingsPage;
 import cucumber.eclipse.steps.integration.IStepDefinitions;
 import cucumber.eclipse.steps.integration.IStepListener;
@@ -87,10 +89,10 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 			final String onlySpeficicPackagesValue = this.userSettingsPage.getOnlySpecificPackage().trim();
 			final boolean onlySpeficicPackages= onlySpeficicPackagesValue.length() == 0 ? false : true;
 			String featurefilePackage = featurefile.getParent().getFullPath().toString();
-	
 			if (project.isNatureEnabled(JAVA_PROJECT)) {
 				
 				IJavaProject javaProject = JavaCore.create(project);
+				Collection<TypeRegistryConfigurer> typeRegistryConfigurer = StepDefinitions.loadTypeRegistryConfigurerFromProject(javaProject, progressMonitor);
 				IPackageFragment[] packages = javaProject.getPackageFragments();
 				SubMonitor subMonitor = SubMonitor.convert(progressMonitor, packages.length);
 				for (IPackageFragment javaPackage : packages) {
@@ -104,7 +106,7 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 							// System.out.println("Package Name-1
 							// :"+javaPackage.getElementName());
 							// Collect All Steps From Source
-							collectCukeStepsFromSource(javaProject, javaPackage, steps, progressMonitor);
+							collectCukeStepsFromSource(javaProject, javaPackage, steps, typeRegistryConfigurer, progressMonitor);
 						}
 					}
 	
@@ -117,7 +119,7 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 							if (javaPackage.getElementName().equals(extPackageName.trim())
 									|| javaPackage.getElementName().startsWith(extPackageName.trim())) {
 								// Collect All Steps From JAR
-								collectCukeStepsFromJar(javaPackage, steps);
+								collectCukeStepsFromJar(javaPackage, steps, typeRegistryConfigurer);
 							}
 						}
 					}
@@ -137,16 +139,17 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 	 * @param javaProject
 	 * @param javaPackage
 	 * @param steps
+	 * @param typeRegistryConfigurer 
 	 * @param progressMonitor 
 	 * @throws JavaModelException
 	 * @throws CoreException
 	 */
-	public void collectCukeStepsFromSource(IJavaProject javaProject, IPackageFragment javaPackage, Set<Step> steps, IProgressMonitor progressMonitor)
+	public void collectCukeStepsFromSource(IJavaProject javaProject, IPackageFragment javaPackage, Set<Step> steps, Collection<TypeRegistryConfigurer> typeRegistryConfigurer, IProgressMonitor progressMonitor)
 			throws JavaModelException, CoreException {
 
 		for (ICompilationUnit iCompUnit : javaPackage.getCompilationUnits()) {
 			// Collect and add Steps
-			steps.addAll(getCukeSteps(javaProject, iCompUnit, progressMonitor));
+			steps.addAll(getCukeSteps(javaProject, iCompUnit, typeRegistryConfigurer, progressMonitor));
 		}
 	}
 
@@ -155,10 +158,11 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 	 * 
 	 * @param javaPackage
 	 * @param steps
+	 * @param typeRegistryConfigurer 
 	 * @throws JavaModelException
 	 * @throws CoreException
 	 */
-	public void collectCukeStepsFromJar(IPackageFragment javaPackage, Set<Step> steps)
+	public void collectCukeStepsFromJar(IPackageFragment javaPackage, Set<Step> steps, Collection<TypeRegistryConfigurer> typeRegistryConfigurer)
 			throws JavaModelException, CoreException {
 
 		IClassFile[] classFiles = javaPackage.getClassFiles();
@@ -167,7 +171,7 @@ public class JDTStepDefinitions extends StepDefinitions implements IStepDefiniti
 		for (IClassFile classFile : classFiles) {
 			// System.out.println("----classFile: "
 			// +classFile.getElementName());
-			steps.addAll(getCukeSteps(javaPackage, classFile, localeCache, expressionCache));
+			steps.addAll(getCukeSteps(javaPackage, classFile, localeCache, expressionCache, typeRegistryConfigurer));
 		}
 	}
 

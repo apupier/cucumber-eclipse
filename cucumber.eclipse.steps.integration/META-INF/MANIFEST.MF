@@ -12,8 +12,9 @@ Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ClassPath: .,
  META-INF/lib/cucumber-core-4.2.0.jar,
  META-INF/lib/cucumber-java-4.2.0.jar,
- META-INF/lib/cucumber-expressions-6.1.0.jar,
- META-INF/lib/gherkin-2.12.2.jar
+ META-INF/lib/gherkin-2.12.2.jar,
+ META-INF/lib/datatable-1.1.7.jar,
+ META-INF/lib/cucumber-expressions-6.2.0.jar
 Export-Package: cucumber.api;version="4.2.0",
  cucumber.api.cli;version="4.2.0",
  cucumber.api.event;version="4.2.0",
@@ -118,6 +119,7 @@ Export-Package: cucumber.api;version="4.2.0",
  gherkin.lexer;version="2.12.2",
  gherkin.parser;version="2.12.2",
  gherkin.util;version="2.12.2",
- io.cucumber.cucumberexpressions;version="6.1.0",
+ io.cucumber.cucumberexpressions;version="6.2.0",
+ io.cucumber.datatable;version="1.1.7",
  io.cucumber.stepexpression;version="4.2.0"
 Automatic-Module-Name: cucumber.eclipse.steps.integration
