@@ -10,6 +10,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import cucumber.eclipse.steps.integration.Step;
+import cucumber.eclipse.steps.jdt.StepDefinitions;
+import io.cucumber.cucumberexpressions.ExpressionFactory;
 
 public class StepHyperlinkTest {
 
@@ -19,9 +21,8 @@ public class StepHyperlinkTest {
 	@Before
 	public void setUp() {
 		region = new Region(0, 10);
-		Step step = new Step();
-		step.setText("Given I have a cat");
-		stepHyperlink = new StepHyperlink(region, step);
+		ExpressionFactory factory = StepDefinitions.getOrCreateExpressionFactory(null, StepDefinitions.getOrCreateLocale(null, null), null);
+		stepHyperlink = new StepHyperlink(region, new Step(factory.createExpression("Given I have a cat"), "test", "me"));
 	}
 	
 	@Test

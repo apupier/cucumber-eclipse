@@ -13,35 +13,58 @@ class StepMatcher {
 	private Pattern groupPatternNonParameterMatch = Pattern.compile("(\\(\\?:.+?\\))");
 	private Pattern groupPattern = Pattern.compile("(\\(.+?\\))");
 
+	public String getTextStatement(String language, String expression) {
+		Matcher matcher = getBasicStatementMatcher(language, expression);
+		if(matcher == null) {
+			return null;
+		}
+		if(matcher.matches()) {
+			return matcher.group(1);
+		}
+		return null;
+	}
 	
-	@SuppressWarnings("deprecation")
-	public Step matchSteps(String languageCode, Set<Step> steps, String currentLine) {
-
-		//System.out.println("StepMatcher matchSteps() steps = " + steps);
-		Pattern cukePattern = getLanguageKeyWordMatcher(languageCode);
+	/**
+	 * Get a matcher to ensure text starts with a basic step keyword : Given, When,
+	 * Then, etc
+	 * 
+	 * @param language the document language
+	 * @param text the text to match
+	 * @return a matcher
+	 */
+	private Matcher getBasicStatementMatcher(String language, String text) {
+		Pattern cukePattern = getLanguageKeyWordMatcher(language);
 
 		if (cukePattern == null)
 			return null;
 
-		Matcher matcher = cukePattern.matcher(currentLine);
+		return cukePattern.matcher(text.trim());
+	}
+	
+	public Step matchSteps(String languageCode, Set<Step> steps, String currentLine) {
+
+		//System.out.println("StepMatcher matchSteps() steps = " + steps);
+		
+		Matcher matcher = getBasicStatementMatcher(languageCode, currentLine);
 
 		if (matcher.matches()) {
 
-			String originalCukeStep = matcher.group(1);
+			String cukeStep = matcher.group(1);
 			//System.out.println("StepMatcher matchSteps() cukeStep1 = " + cukeStep);
 			// FIXME: Replace variables with (MPL - <p>) for now to allow them
 			// to match steps
 			// Should really read the whole scenario outline and sub in the
 			// first scenario
-			Matcher variableMatcher = variablePattern.matcher(originalCukeStep);
-			String cukeStep = variableMatcher.replaceAll("<p>");
+			Matcher variableMatcher = variablePattern.matcher(cukeStep);
+			cukeStep = variableMatcher.replaceAll("<p>");
 
 			//System.out.println("StepMatcher matchSteps() cukeStep2 = " + cukeStep);
-
 			for (Step step : steps) {
-				if (step.matches(originalCukeStep)) {
+				//shortcut...
+				if (step.matches(currentLine)) {
 					return step;
 				}
+				String stepText = step.getText();
 
 				// firstly, have to replace all non-parameter matching group
 				// expressions to conform to normal regexp
@@ -49,11 +72,11 @@ class StepMatcher {
 				// System.out.println("StepMatcher matchSteps() FOR START
 				// ###########################################################");
 
-				String stepTextPattern = step.getExpression().getRegexp().pattern();
-				Matcher groupNonParameterMatcher = groupPatternNonParameterMatch.matcher(stepTextPattern);
+				Matcher groupNonParameterMatcher = groupPatternNonParameterMatch.matcher(stepText);
 				while (groupNonParameterMatcher.find()) {
-					stepTextPattern = stepTextPattern.replace(groupNonParameterMatcher.group(0),
+					stepText = stepText.replace(groupNonParameterMatcher.group(0),
 							"(" + groupNonParameterMatcher.group(0).substring(3));
+
 					// System.out.println("WHILE-1 : StepMatcher matchSteps()
 					// System.out.println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
 				}
@@ -61,7 +84,7 @@ class StepMatcher {
 				// for each group match, want to insert <p> as an option
 				// e.g. (\\d+) becomes (<p>|\\d+)
 				// e.g. (two|ten) becomes (<p>|two|ten)
-				Matcher groupMatcher = groupPattern.matcher(stepTextPattern);
+				Matcher groupMatcher = groupPattern.matcher(stepText);
 				// System.out.println("GET-TEXT ="+step.getText());
 
 				while (groupMatcher.find()) {
@@ -85,7 +108,7 @@ class StepMatcher {
 						// System.out.println("WHILE-2 : StepMatcher
 						// matchSteps() groupMatcher.group(0) DOESNOT startsWith
 						// <p>");
-						stepTextPattern = stepTextPattern.replace(groupMatcher.group(0),
+						stepText = stepText.replace(groupMatcher.group(0),
 								"(<p>|" + groupMatcher.group(0).substring(1));
 
 						// System.out.println("WHILE-2 : StepMatcher
@@ -95,11 +118,10 @@ class StepMatcher {
 						break;
 				}
 				try {
-				if (Pattern.compile(stepTextPattern).matcher(cukeStep).matches()) {
+				if (Pattern.compile(stepText).matcher(cukeStep).matches()) {
 					return step;
-				}
-				} catch(PatternSyntaxException e) {
-					//can't match it then..
+				}} catch(PatternSyntaxException e) {
+					//can't match then
 				}
 
 				// System.out.println("FOR : StepMatcher matchSteps() step-3 = "
