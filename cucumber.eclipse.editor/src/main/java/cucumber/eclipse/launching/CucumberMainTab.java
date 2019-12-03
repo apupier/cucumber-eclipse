@@ -39,6 +39,7 @@ public class CucumberMainTab extends SharedJavaMainTab implements ILaunchConfigu
 	private Button usageCheckbox;
 	private Button junitCheckbox;
 	private Button rerunCheckbox;
+	private Button versionCheckbox;
 
 
 	private class WidgetListener implements ModifyListener, SelectionListener {
@@ -117,6 +118,10 @@ public class CucumberMainTab extends SharedJavaMainTab implements ILaunchConfigu
 		usageCheckbox=new Button(group,SWT.CHECK);
 		usageCheckbox.addSelectionListener(listener);
 		usageCheckbox.setText("usage");
+		
+		versionCheckbox=new Button(group,SWT.CHECK);
+		versionCheckbox.addSelectionListener(listener);
+		versionCheckbox.setText("version");
 
 		// Need to add option to choose path before can enable
 		
@@ -194,6 +199,7 @@ public class CucumberMainTab extends SharedJavaMainTab implements ILaunchConfigu
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_USAGE, usageCheckbox.getSelection());
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_JUNIT, junitCheckbox.getSelection());
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_RERUN, rerunCheckbox.getSelection());
+		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_VERSION, versionCheckbox.getSelection());
 		
 		mapResources(config);
 
@@ -279,6 +285,7 @@ public class CucumberMainTab extends SharedJavaMainTab implements ILaunchConfigu
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_RERUN, false);
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_JSON, false);
 		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_JUNIT, false);
+		config.setAttribute(CucumberFeatureLaunchConstants.ATTR_IS_VERSION, false);
 	}
 
 }

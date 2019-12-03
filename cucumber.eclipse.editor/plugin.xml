@@ -209,13 +209,15 @@
          <enablement >
            <with variable="selection">
            <count value="1"/>
+          <!--
           <iterate>
-            <adapt type="org.eclipse.core.resources.IResource">
-                <and>
-                <test property="org.eclipse.core.resources.name" value="*.feature"/>
-            </and>
-        </adapt>
+             <adapt type="org.eclipse.core.resources.IResource">
+               <and>
+                 <test property="org.eclipse.core.resources.name" value="*.feature"/>
+               </and>
+             </adapt>
           </iterate>
+          -->
            </with>
        </enablement>
      </contextualLaunch>

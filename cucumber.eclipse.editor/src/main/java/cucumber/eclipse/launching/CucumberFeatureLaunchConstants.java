@@ -19,6 +19,7 @@ public class CucumberFeatureLaunchConstants {
 	public static final String ATTR_IS_USAGE = "is usage formatter";
 	public static final String ATTR_IS_JUNIT = "is junit formatter";
 	public static final String ATTR_IS_RERUN = "is rerun formatter";
+	public static final String ATTR_IS_VERSION = "is version";
 	
 
 }
