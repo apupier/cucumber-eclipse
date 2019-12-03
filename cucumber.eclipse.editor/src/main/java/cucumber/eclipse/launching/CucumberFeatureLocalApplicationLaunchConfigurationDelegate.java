@@ -42,7 +42,7 @@ public class CucumberFeatureLocalApplicationLaunchConfigurationDelegate extends 
 
 		IVMInstall vm = verifyVMInstall(config);
 		IVMRunner runner = vm.getVMRunner(mode);
-		String[] classpath = getClasspathAndModulepath(config)[0];
+		String[] classpath = getClasspath(config);
 		VMRunnerConfiguration runConfig = new VMRunnerConfiguration(CucumberFeatureLaunchConstants.CUCUMBER_API_CLI_MAIN, classpath);
 
 		verifyWorkingDirectory(config);
