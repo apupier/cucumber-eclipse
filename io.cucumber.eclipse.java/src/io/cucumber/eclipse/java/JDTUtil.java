@@ -37,8 +37,10 @@ import org.eclipse.jdt.core.IImportDeclaration;
 import org.eclipse.jdt.core.IJavaModel;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.ILocalVariable;
+import org.eclipse.jdt.core.IMember;
 import org.eclipse.jdt.core.IMethod;
 import org.eclipse.jdt.core.IPackageFragment;
+import org.eclipse.jdt.core.ISourceRange;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
@@ -48,6 +50,8 @@ import org.eclipse.jdt.launching.JavaRuntime;
 import org.eclipse.jface.internal.text.html.HTMLPrinter;
 import org.eclipse.jface.resource.ColorRegistry;
 import org.eclipse.jface.resource.JFaceResources;
+import org.eclipse.jface.text.BadLocationException;
+import org.eclipse.jface.text.Document;
 import org.eclipse.jface.text.IDocument;
 import org.eclipse.swt.graphics.RGB;
 
@@ -332,5 +336,14 @@ public class JDTUtil {
 		}
 		return false;
 	}
+
+	public static int[] getLineNumberAndRange(IMember member) throws CoreException, BadLocationException {
+		ISourceRange nameRange = member.getNameRange();
+		int offset = nameRange.getOffset();
+		Document document = new Document(member.getCompilationUnit().getSource());
+		int lineNumber = document.getLineOfOffset(offset);
+		return new int[] { lineNumber, offset, offset + nameRange.getLength() };
+	}
+
 
 }

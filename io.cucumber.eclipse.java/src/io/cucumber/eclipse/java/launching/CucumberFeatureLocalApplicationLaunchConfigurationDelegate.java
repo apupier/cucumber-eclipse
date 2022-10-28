@@ -17,13 +17,10 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.variables.VariablesPlugin;
-import org.eclipse.debug.core.DebugEvent;
 import org.eclipse.debug.core.DebugPlugin;
 import org.eclipse.debug.core.ILaunch;
 import org.eclipse.debug.core.ILaunchConfiguration;
-import org.eclipse.debug.core.model.IBreakpoint;
 import org.eclipse.debug.core.model.ILaunchConfigurationDelegate2;
-import org.eclipse.debug.core.model.IStackFrame;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.launching.AbstractJavaLaunchConfigurationDelegate;
 import org.eclipse.jdt.launching.IJavaLaunchConfigurationConstants;
@@ -36,12 +33,6 @@ import io.cucumber.core.feature.FeatureWithLines;
 import io.cucumber.core.gherkin.Feature;
 import io.cucumber.eclipse.editor.console.CucumberConsole;
 import io.cucumber.eclipse.editor.console.CucumberConsoleFactory;
-import io.cucumber.eclipse.editor.debug.GherkingBreakpoint;
-import io.cucumber.eclipse.editor.debug.GherkingDebugTarget;
-import io.cucumber.eclipse.editor.debug.GherkingStepStackFrame;
-import io.cucumber.eclipse.editor.debug.GherkingThread;
-import io.cucumber.eclipse.editor.document.GherkinMessageHandler;
-import io.cucumber.eclipse.editor.document.TestStepEvent;
 import io.cucumber.eclipse.editor.launching.ILauncher.Mode;
 import io.cucumber.eclipse.java.JDTUtil;
 import io.cucumber.eclipse.java.plugins.CucumberEclipsePlugin;
@@ -58,7 +49,6 @@ public class CucumberFeatureLocalApplicationLaunchConfigurationDelegate extends 
 		Mode launchMode = Mode.parseString(mode);
 		String withLine = config.getAttribute(CucumberFeatureLaunchConstants.ATTR_FEATURE_WITH_LINE, "");
 		String tags = config.getAttribute(CucumberFeatureLaunchConstants.ATTR_TAGS, "");
-
 		IVMInstall vm = verifyVMInstall(config);
 		IVMRunner runner = vm.getVMRunner(mode);
 		String[][] classpathAndModules = getClasspathAndModulepath(config);
@@ -174,59 +164,13 @@ public class CucumberFeatureLocalApplicationLaunchConfigurationDelegate extends 
 			launch.addProcess(endpoint);
 
 			if (launchMode == Mode.DEBUG) {
-				GherkingDebugTarget<MessageEndpointProcess> debugTarget = new GherkingDebugTarget<MessageEndpointProcess>(
-						launch, endpoint, "cucumber-jvm");
-				IBreakpoint[] breakpoints = DebugPlugin.getDefault().getBreakpointManager()
-						.getBreakpoints(GherkingBreakpoint.MODEL_ID);
-				endpoint.addEnvelopeListener(new GherkinMessageHandler() {
-
-					private volatile boolean suspendOnNextStep;
-
-					@Override
-					protected void handleTestStepStart(TestStepEvent event) {
-						try {
-							if (suspendOnNextStep) {
-								suspendOnNextStep = false;
-								GherkingThread thread = debugTarget.getThread();
-								thread.suspend(trace(event, thread), DebugEvent.STEP_OVER).await();
-								return;
-							}
-							for (IBreakpoint breakpoint : breakpoints) {
-								if (breakpoint instanceof GherkingBreakpoint) {
-									GherkingBreakpoint gbp = (GherkingBreakpoint) breakpoint;
-									if (gbp.getLineNumber() == event.getStep().getLocation().getLine()) {
-										GherkingThread thread = debugTarget.getThread();
-										thread.suspend(gbp, trace(event, thread)).await();
-										return;
-									}
-								}
-							}
-						} catch (CoreException e) {
-							e.printStackTrace();
-						} catch (InterruptedException e) {
-							e.printStackTrace();
-						}
-					}
-
-					private IStackFrame[] trace(TestStepEvent event, GherkingThread thread) {
-						IStackFrame[] stackFrames = event.getStackTrace(thread);
-						for (IStackFrame frame : stackFrames) {
-							if (frame instanceof GherkingStepStackFrame) {
-								GherkingStepStackFrame stepStackFrame = (GherkingStepStackFrame) frame;
-								stepStackFrame.setStepOverHandler(() -> {
-									suspendOnNextStep = true;
-									thread.resume();
-								});
-							}
-						}
-						return stackFrames;
-					}
-
-				});
+				CucumberDebugTarget debugTarget = new CucumberDebugTarget(launch, endpoint, getJavaProject(config));
 				launch.addDebugTarget(debugTarget);
 			}
 			runner.run(runConfig, launch, monitor);
-		} catch (CoreException core) {
+		} catch (
+
+		CoreException core) {
 			endpoint.terminate();
 			throw core;
 		} catch (RuntimeException runtime) {

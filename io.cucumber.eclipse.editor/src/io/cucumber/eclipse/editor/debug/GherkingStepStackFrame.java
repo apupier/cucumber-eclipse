@@ -23,6 +23,7 @@ public class GherkingStepStackFrame extends GherkingStackFrame {
 	private StepDefinition stepDefinition;
 	private TestStep testStep;
 	private DebugRunnable stepOverHandler;
+	private DebugRunnable stepIntoHandler;
 
 	public GherkingStepStackFrame(IThread thread, TestStep testStep, Step step, StepDefinition stepDefinition) {
 		super(thread, step.getLocation().getLine(), "[" + step.getKeyword().strip() + "] " + step.getText());
@@ -74,6 +75,22 @@ public class GherkingStepStackFrame extends GherkingStackFrame {
 	public void stepOver() throws DebugException {
 		if (stepOverHandler != null) {
 			stepOverHandler.run();
+		}
+	}
+
+	public void setStepIntoHandler(DebugRunnable runnable) {
+		this.stepIntoHandler = runnable;
+	}
+
+	@Override
+	public boolean canStepInto() {
+		return stepIntoHandler != null;
+	}
+
+	@Override
+	public void stepInto() throws DebugException {
+		if (stepIntoHandler != null) {
+			stepIntoHandler.run();
 		}
 	}
 

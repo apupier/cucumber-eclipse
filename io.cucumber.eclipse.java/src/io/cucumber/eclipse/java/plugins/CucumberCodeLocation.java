@@ -35,6 +35,14 @@ public final class CucumberCodeLocation {
 		}
 	}
 
+	public CucumberCodeLocation(String className, String methodName, String[] parameter) {
+		this.type = className;
+		this.methodName = methodName;
+		this.parameter = parameter;
+		this.location = className + "." + methodName + "(" + String.join(",", parameter) + ")";
+		this.returnType = "void";
+	}
+
 	public String getTypeName() {
 		return type;
 	}

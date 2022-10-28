@@ -297,7 +297,6 @@
 	             id="Bug575970.doubleClickBreakpointAction"/>
 	    </editorContribution>
 	 </extension>
-	 <!-- non deprecated but seem to not work atm....
 	 <extension
 	       point="org.eclipse.ui.menus">
 	    <menuContribution
@@ -309,20 +308,4 @@
 	       </command>
 	    </menuContribution>
 	 </extension>
-	 -->
-	 <!-- Workaround for Bug 575970 -->
-	 <extension point="org.eclipse.ui.popupMenus">
-	   <viewerContribution
-	     targetID="#TextRulerContext"
-	     id="Bug575970.RulerPopupActions">
-	       <action
-	         label="Toggle Breakpoint"
-	         class="org.eclipse.debug.ui.actions.RulerToggleBreakpointActionDelegate"
-	         menubarPath="additions"
-	         id="Bug575970.rulerContextMenu.toggleBreakpointAction">
-	       </action>
-	   </viewerContribution>
-	 </extension>
-	 
-	 
 </plugin>
